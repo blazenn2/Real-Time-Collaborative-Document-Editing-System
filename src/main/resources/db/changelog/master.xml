@@ -6,6 +6,6 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
 
     <!-- Include changelog files -->
-<!--    <include file="db.changelog-1.0.xml" relativeToChangelogFile="true" />-->
+    <include file="sql/1.0.0-creation-of-user-entity.sql" relativeToChangelogFile="true" />
 
 </databaseChangeLog>
