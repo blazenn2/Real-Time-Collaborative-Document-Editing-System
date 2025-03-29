@@ -38,8 +38,12 @@ public class AppUserService {
         return appUserMapper.appUserToAppUserDTO(appUserRepository.save(appUser));
     }
 
+    public AppUserDTO partialUpdate(AppUserDTO appUserDTO) {
+        return appUserRepository.findById(appUserDTO.getId()).map(existingAppUser -> appUserMapper.updateAppUserFromDTO(appUserDTO, existingAppUser)).map(appUserRepository::save).map(appUserMapper::appUserToAppUserDTO).orElse(null);
+    }
+
     @Transactional(readOnly = true)
-    public String authenticateAppUser(LoginVM loginVM) throws BadRequestException, ResourceNotFoundException {
+    public String authenticateAppUser(LoginVM loginVM) throws ResourceNotFoundException {
         AppUserDTO appUserDTO = this.findOneByEmail(loginVM.getEmail());
         if (appUserDTO == null) throw new UserNotFoundException("User not found");
         if (!passwordEncoder.matches(loginVM.getPassword(), appUserDTO.getPassword())) throw new InvalidPasswordException("Password does not match");
@@ -50,5 +54,16 @@ public class AppUserService {
     public AppUserDTO findOneByEmail(String username) {
         log.info("Request to find user by username: {}", username);
         return appUserMapper.appUserToAppUserDTO(appUserRepository.findAppUserByEmail(username));
+    }
+
+    public Boolean checkIfAppUserExists(Long id) {
+        log.info("Request to find user by id to find its existence: {}", id);
+        return appUserRepository.findById(id).isPresent();
+    }
+
+    public void validateAppUserForUpdate(AppUserDTO appUserDTO, Long id) throws BadRequestException {
+        if (appUserDTO.getId() == null) throw new BadRequestException("Invalid id");
+        if (!appUserDTO.getId().equals(id)) throw new BadRequestException("Id doesn't match with the payload and URL");
+        if (Boolean.FALSE.equals(checkIfAppUserExists(id))) throw new BadRequestException("This user doesn't exist in database");
     }
 }
