@@ -19,4 +19,9 @@ public class Jwt {
         Claims claims = Jwts.claims().setSubject(email);
         return Jwts.builder().setClaims(claims).setSubject(email).setExpiration(new Date(System.currentTimeMillis() + Long.parseLong(expiration))).signWith(SignatureAlgorithm.HS256, secret).compact();
     }
+
+    public Boolean validateToken(String token) {
+        // add validation logic here
+        return false;
+    }
 }

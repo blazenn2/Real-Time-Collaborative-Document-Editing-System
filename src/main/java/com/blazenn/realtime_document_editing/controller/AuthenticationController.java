@@ -20,7 +20,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("")
-    public ResponseEntity<String> authenticateUser(@Valid @RequestBody LoginVM loginVM) throws BadRequestException {
+    public ResponseEntity<String> authenticateUser(@Valid @RequestBody LoginVM loginVM) {
         log.info("POST Request to authenticateUser");
         String jwt = appUserService.authenticateAppUser(loginVM);
         return ResponseEntity.ok(jwt);
