@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -25,14 +27,19 @@ public class JwtAuthorization extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         try {
-            String token = request.getHeader("Authorization");
-            if (token == null || !token.startsWith("Bearer ")) {
+            String bearerToken = request.getHeader("Authorization");
+            if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
                 filterChain.doFilter(request, response);
                 return;
             }
-            if (Boolean.FALSE.equals(jwt.validateToken(token.substring(7)))) {
+            String token = bearerToken.substring(7);
+            if (Boolean.FALSE.equals(jwt.validateToken(token))) {
                 throw new JwtUnathorizedException("Invalid JWT token found.");
             }
+            String email = jwt.getEmailFromToken(token);
+            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(email, null, null);
+            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+            filterChain.doFilter(request, response);
         } catch (JwtUnathorizedException e) {
             handlerExceptionResolver.resolveException(request, response, null, e);
         }

@@ -33,4 +33,8 @@ public class Jwt {
             return false;
         }
     }
+
+    public String getEmailFromToken(String token) {
+        return Jwts.parserBuilder().setSigningKey(secret).build().parseClaimsJws(token).getBody().getSubject();
+    }
 }
