@@ -7,6 +7,7 @@ import com.blazenn.realtime_document_editing.service.mapper.DocumentMapper;
 import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -37,9 +38,9 @@ public class DocumentService {
         return documentMapper.documentToDocumentDTO(document);
     }
 
-    public List<DocumentDTO> findAll() {
+    public List<DocumentDTO> findAll(Pageable pageable) {
         log.info("Request to find all documents");
-        return documentRepository.findAll().stream().map(documentMapper::documentToDocumentDTO).collect(Collectors.toList());
+        return documentRepository.findAll(pageable).stream().map(documentMapper::documentToDocumentDTO).collect(Collectors.toList());
     }
 
     public DocumentDTO partialUpdate(DocumentDTO documentDTO) {
@@ -61,5 +62,14 @@ public class DocumentService {
         if (documentDTO.getId() == null) throw new BadRequestException("Payload doesn't contain id to update");
         if (!Objects.equals(documentDTO.getId(), id)) throw new BadRequestException("Document id mismatch");
         if (Boolean.FALSE.equals(checkIfDocumentExists(id))) throw new BadRequestException("No document was found for id " + documentDTO.getId());
+    }
+
+    public DocumentDTO saveContentAndTitle(Long id, DocumentDTO documentDTO) {
+        if (documentDTO.getTitle() == null || documentDTO.getContent() == null) {
+            DocumentDTO documentFromRepository = this.findOneById(id);
+            documentDTO.setContent(documentDTO.getContent() == null ? documentFromRepository.getContent() : documentDTO.getContent());
+            documentDTO.setTitle(documentDTO.getTitle() == null ? documentFromRepository.getTitle() : documentDTO.getTitle());
+        }
+        return this.save(documentDTO);
     }
 }

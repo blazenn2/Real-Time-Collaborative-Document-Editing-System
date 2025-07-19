@@ -1,10 +1,11 @@
-package com.blazenn.realtime_document_editing.controller;
+package com.blazenn.realtime_document_editing.controller.rest;
 
 import com.blazenn.realtime_document_editing.dto.DocumentDTO;
 import com.blazenn.realtime_document_editing.service.DocumentService;
 import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,9 +32,9 @@ public class DocumentController {
     }
 
     @GetMapping("")
-    public ResponseEntity<List<DocumentDTO>> findAll() {
+    public ResponseEntity<List<DocumentDTO>> findAll(Pageable page) {
         log.info("GET request to get all documents");
-        List<DocumentDTO> result = documentService.findAll();
+        List<DocumentDTO> result = documentService.findAll(page);
         return ResponseEntity.ok().body(result);
     }
 
