@@ -1,9 +1,8 @@
-package com.blazenn.realtime_document_editing.controller;
+package com.blazenn.realtime_document_editing.controller.rest;
 
 import com.blazenn.realtime_document_editing.dto.LoginVM;
 import com.blazenn.realtime_document_editing.service.AppUserService;
 import jakarta.validation.Valid;
-import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;

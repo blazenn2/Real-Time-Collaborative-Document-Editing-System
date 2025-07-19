@@ -1,4 +1,4 @@
-package com.blazenn.realtime_document_editing.controller;
+package com.blazenn.realtime_document_editing.controller.rest;
 
 import com.blazenn.realtime_document_editing.dto.AppUserDTO;
 import com.blazenn.realtime_document_editing.service.AppUserService;
