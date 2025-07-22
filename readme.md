@@ -218,7 +218,3 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 * Collaborative cursor/selection display
 * Version history and rollback
 * Offline edit support and sync
-
----
-
-Let me know if you'd like this exported to a downloadable `.md` file or synced with a GitHub repo README!
