@@ -19,21 +19,26 @@ import java.util.Map;
 
 @Configuration
 public class RedisConfig {
+
+    private ObjectMapper createObjectMapper() {
+        BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+                .allowIfSubType("com.blazenn.realtime_document_editing")
+                .build();
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL);
+
+        return mapper;
+    }
+
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        // Custom ObjectMapper with type info
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        mapper.activateDefaultTyping(
-                BasicPolymorphicTypeValidator.builder().build(),
-                ObjectMapper.DefaultTyping.NON_FINAL
-        );
-
         Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
-        serializer.setObjectMapper(mapper);
+        serializer.setObjectMapper(createObjectMapper());
 
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(serializer);
@@ -46,12 +51,18 @@ public class RedisConfig {
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        RedisCacheConfiguration cacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofSeconds(600)) // Time for TLL
-                .disableCachingNullValues();
+        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
+        serializer.setObjectMapper(createObjectMapper());
+
+        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(10))
+                .disableCachingNullValues()
+                .serializeValuesWith(
+                        org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair.fromSerializer(serializer)
+                );
 
         return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(cacheConfiguration)
+                .cacheDefaults(config)
                 .build();
     }
 }
