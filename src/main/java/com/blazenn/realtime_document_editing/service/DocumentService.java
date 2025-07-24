@@ -7,6 +7,9 @@ import com.blazenn.realtime_document_editing.service.mapper.DocumentMapper;
 import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +28,7 @@ public class DocumentService {
         this.documentMapper = documentMapper;
     }
 
+    @CachePut(cacheNames = "document", key = "#documentDTO.id")
     public DocumentDTO save(DocumentDTO documentDTO) {
         log.info("Request to save document {}", documentDTO);
         Document document = documentMapper.documentDTOToDocument(documentDTO);
@@ -32,6 +36,7 @@ public class DocumentService {
         return documentMapper.documentToDocumentDTO(document);
     }
 
+    @Cacheable(value = "document", key = "#id")
     public DocumentDTO findOneById(Long id) {
         log.info("Request to find document by id {}", id);
         Document document = documentRepository.findById(id).orElse(null);
@@ -43,11 +48,13 @@ public class DocumentService {
         return documentRepository.findAll(pageable).stream().map(documentMapper::documentToDocumentDTO).collect(Collectors.toList());
     }
 
+    @CachePut(cacheNames = "document", key = "#documentDTO.id")
     public DocumentDTO partialUpdate(DocumentDTO documentDTO) {
         log.info("Request to partial update document {}", documentDTO);
         return documentRepository.findById(documentDTO.getId()).map(document -> documentMapper.updateDocumentFromDTO(documentDTO, document)).map(documentMapper::documentToDocumentDTO).orElse(null);
     }
 
+    @CacheEvict(cacheNames = "document", key = "#id", beforeInvocation = true)
     public void deleteById(Long id) {
         log.info("Request to delete document {}", id);
         documentRepository.deleteById(id);
@@ -64,6 +71,7 @@ public class DocumentService {
         if (Boolean.FALSE.equals(checkIfDocumentExists(id))) throw new BadRequestException("No document was found for id " + documentDTO.getId());
     }
 
+    @CachePut(value = "document", key = "#id")
     public DocumentDTO saveContentAndTitle(Long id, DocumentDTO documentDTO) {
         if (documentDTO.getTitle() == null || documentDTO.getContent() == null) {
             DocumentDTO documentFromRepository = this.findOneById(id);

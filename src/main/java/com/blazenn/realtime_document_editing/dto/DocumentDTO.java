@@ -2,10 +2,14 @@ package com.blazenn.realtime_document_editing.dto;
 
 import lombok.Data;
 import lombok.ToString;
+import org.springframework.data.redis.core.RedisHash;
+
+import java.io.Serializable;
 
 @Data
 @ToString
-public class DocumentDTO {
+@RedisHash(value = "document", timeToLive = 60)
+public class DocumentDTO implements Serializable {
     private Long id;
     private String title;
     private String content;
