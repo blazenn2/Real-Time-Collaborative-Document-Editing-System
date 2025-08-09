@@ -2,11 +2,11 @@ package com.blazenn.realtime_document_editing.service.mapper;
 
 import com.blazenn.realtime_document_editing.dto.DocumentDTO;
 import com.blazenn.realtime_document_editing.model.Document;
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
+
+import java.util.HashMap;
 
 @Mapper(componentModel = "spring")
 public interface DocumentMapper {
@@ -18,4 +18,10 @@ public interface DocumentMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     Document updateDocumentFromDTO(DocumentDTO documentDTO, @MappingTarget Document document);
+
+    @Named("documentDTOToMap")
+    default HashMap<String, Object> documentDTOToMap(DocumentDTO documentDTO) {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.convertValue(documentDTO, HashMap.class);
+    };
 }
