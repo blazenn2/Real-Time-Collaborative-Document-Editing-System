@@ -1,5 +1,6 @@
 package com.blazenn.realtime_document_editing.dto;
 
+import jakarta.validation.constraints.*;
 import lombok.Data;
 import lombok.ToString;
 import org.springframework.data.redis.core.RedisHash;
@@ -10,7 +11,12 @@ import java.io.Serializable;
 @ToString
 @RedisHash(value = "document", timeToLive = 60)
 public class DocumentDTO implements Serializable {
+    @NotNull
+    @Positive
     private Long id;
+    @NotNull
+    @Size(min = 1, max = 255)
+    @NotBlank
     private String title;
     private String content;
 

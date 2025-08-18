@@ -20,9 +20,10 @@ public interface DeadEventsMapper {
     @Mapping(target = "id", ignore = true)
     DeadEventsDTO documentDTOToDeadEventsDTO(DocumentDTO documentDTO);
 
-    default DeadEventsDTO createPayloadFromDeadLetterQueue(DocumentDTO documentDTO, Map<String, Object> headers, String routingKey) {
+    default DeadEventsDTO createPayloadFromDeadLetterQueue(DocumentDTO documentDTO, Map<String, Object> headers, String routingKey, String errorType) {
         DeadEventsDTO deadEventsDTO = documentDTOToDeadEventsDTO(documentDTO);
         deadEventsDTO.setEventType("DEAD_LETTER_QUEUE_EVENT");
+        deadEventsDTO.setErrorType(errorType);
         deadEventsDTO.setHeaders(headers);
         deadEventsDTO.setRoutingKey(routingKey);
         deadEventsDTO.setCreatedDate(Instant.now());

@@ -20,4 +20,12 @@ public class DocumentUpdateEventProducer {
         log.info("Adding document to the queue[{}] with this payload: [{}]", RabbitMQConstants.UPDATE_DOC_QUEUE, documentDTO);
         rabbitTemplate.convertAndSend(RabbitMQConstants.UPDATE_DOC_EXCHANGE, RabbitMQConstants.UPDATE_DOC_ROUTING_KEY, documentDTO);
     }
+
+    public void sendDocumentErrorToDLQ(DocumentDTO documentDTO, String errorType) {
+        log.info("Sending document[id={}] to DLQ with this payload: {}", documentDTO.getId(), documentDTO);
+        rabbitTemplate.convertAndSend(RabbitMQConstants.DEAD_LETTER_EXCHANGE, RabbitMQConstants.DEAD_LETTER_ROUTING_KEY, documentDTO, message -> {
+            message.getMessageProperties().setHeader("errorType", errorType);
+            return message;
+        });
+    }
 }

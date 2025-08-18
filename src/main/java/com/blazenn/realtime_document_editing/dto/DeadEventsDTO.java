@@ -11,6 +11,7 @@ import java.util.Map;
 public class DeadEventsDTO {
     private Long id;
     private Long documentId;
+    private String errorType;
     private Map<String, Object> payload;
     private String eventType;
     private Map<String, Object> headers;
@@ -73,6 +74,14 @@ public class DeadEventsDTO {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getErrorType() {
+        return errorType;
+    }
+
+    public void setErrorType(String errorType) {
+        this.errorType = errorType;
     }
 
     public String getRoutingKey() {

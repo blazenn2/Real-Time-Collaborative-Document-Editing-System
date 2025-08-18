@@ -30,8 +30,8 @@ public class DeadEventsService {
         return deadEventsRepository.findAll(pageable).stream().map(deadEventsMapper::deadEventsToDeadEventsDTO).collect(Collectors.toList());
     }
 
-    public void save(DocumentDTO documentDTO, String routingKey, Map<String, Object> headers) {
-        this.save(deadEventsMapper.createPayloadFromDeadLetterQueue(documentDTO, headers, routingKey));
+    public void save(DocumentDTO documentDTO, String routingKey, Map<String, Object> headers, String errorType) {
+        this.save(deadEventsMapper.createPayloadFromDeadLetterQueue(documentDTO, headers, routingKey, errorType));
     };
 
     public void save(DeadEventsDTO deadEventsDTO) {
