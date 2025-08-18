@@ -20,19 +20,18 @@ public class DeadEvents {
     @SequenceGenerator(name = "dead_events_generator", sequenceName = "dead_events_seq", allocationSize = 1)
     private Long id;
 
-    @NotNull
     private Long documentId;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    @NotNull
     private Map<String, Object> payload;
 
     private String eventType;
 
+    private String errorType;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    @NotNull
     private Map<String, Object> headers;
 
     private String contentBody;
@@ -114,5 +113,13 @@ public class DeadEvents {
 
     public void setCreatedDate(Instant createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public String getErrorType() {
+        return errorType;
+    }
+
+    public void setErrorType(String errorType) {
+        this.errorType = errorType;
     }
 }
