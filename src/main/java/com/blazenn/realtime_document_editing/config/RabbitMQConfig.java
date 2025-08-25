@@ -18,12 +18,12 @@ public class RabbitMQConfig {
     // Main Queue
     @Bean
     public Queue documentQueue() {
-        return QueueBuilder.durable(RabbitMQConstants.UPDATE_DOC_QUEUE).withArgument("x-message-ttl", 60000L).withArgument("x-dead-letter-exchange", RabbitMQConstants.DEAD_LETTER_EXCHANGE).withArgument("x-dead-letter-routing-key", RabbitMQConstants.DEAD_LETTER_ROUTING_KEY).build();
+        return QueueBuilder.durable(RabbitMQConstants.UPDATE_DOC_QUEUE).withArgument("x-dead-letter-exchange", RabbitMQConstants.DEAD_LETTER_EXCHANGE).withArgument("x-dead-letter-routing-key", RabbitMQConstants.DEAD_LETTER_ROUTING_KEY).build();
     }
 
     @Bean
     public DirectExchange documentDirectExchange() {
-        return new DirectExchange(RabbitMQConstants.UPDATE_DOC_EXCHANGE);
+        return new DirectExchange(RabbitMQConstants.UPDATE_DOC_EXCHANGE, true, false);
     }
 
     @Bean
@@ -60,12 +60,12 @@ public class RabbitMQConfig {
     // Dead Letter Queue
     @Bean
     public Queue deadLetterQueue() {
-        return new Queue(RabbitMQConstants.DEAD_LETTER_QUEUE, true);
+        return new Queue(RabbitMQConstants.DEAD_LETTER_QUEUE, true, false, false);
     }
 
     @Bean
     public DirectExchange deadLetterExchange() {
-        return new DirectExchange(RabbitMQConstants.DEAD_LETTER_EXCHANGE);
+        return new DirectExchange(RabbitMQConstants.DEAD_LETTER_EXCHANGE,true, false);
     }
 
     @Bean
