@@ -9,12 +9,20 @@ services:
     restart: unless-stopped
 
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
     container_name: rabbitmq
     ports:
-      - "5672:5672"     # AMQP port
+      - "5672:5672"     # AMQP protocol
       - "15672:15672"   # Management UI
+#      - "5671:5671"   # SSL/TLS AMQP (Commenting out, for now HTTP is fine for local)
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbitmq_management load_definitions \"/etc/rabbitmq/definitions.json\""
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+#      - ./rabbitmq/certificates:/etc/rabbitmq/certs:ro
+#      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     restart: unless-stopped
+
+volumes:
+  rabbitmq_data:

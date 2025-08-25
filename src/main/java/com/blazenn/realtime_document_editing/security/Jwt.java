@@ -18,15 +18,27 @@ public class Jwt {
     private String secret;
     @Value("${jwt.expiration}")
     private String expiration;
+    @Value("${jwt.dlq.secret:${jwt.secret}}")
+    private String secretDLQ;
+    @Value("${jwt.dlq.expiration:${jwt.expiration}}")
+    private String expirationDLQ;
 
     public String createToken(String email) {
+        return this.createToken(email, false);
+    }
+
+    public String createToken(String email, Boolean isDLQ) {
         Claims claims = Jwts.claims().setSubject(email);
-        return Jwts.builder().setClaims(claims).setSubject(email).setExpiration(new Date(System.currentTimeMillis() + Long.parseLong(expiration))).signWith(SignatureAlgorithm.HS256, secret).compact();
+        return Jwts.builder().setClaims(claims).setSubject(email).setExpiration(new Date(System.currentTimeMillis() + Long.parseLong(isDLQ ? expirationDLQ : expiration))).signWith(SignatureAlgorithm.HS256, isDLQ ? secretDLQ : secret).compact();
     }
 
     public Boolean validateToken(String token) {
+        return this.validateToken(token, false);
+    }
+
+    public Boolean validateToken(String token, Boolean isDLQ) {
         try {
-            Jwts.parserBuilder().setSigningKey(secret).build().parse(token);
+            Jwts.parserBuilder().setSigningKey(isDLQ ? secretDLQ : secret).build().parse(token);
             return true;
         } catch (JwtException e) {
             log.error("Exception while validating token", e.fillInStackTrace());
