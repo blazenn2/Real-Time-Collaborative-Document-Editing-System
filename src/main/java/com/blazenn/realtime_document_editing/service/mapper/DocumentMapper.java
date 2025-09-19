@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
-import java.util.HashMap;
+import java.util.*;
 
 @Mapper(componentModel = "spring")
 public interface DocumentMapper {
@@ -24,4 +24,10 @@ public interface DocumentMapper {
         ObjectMapper mapper = new ObjectMapper();
         return mapper.convertValue(documentDTO, HashMap.class);
     };
+
+    @Named("MapToDocumentDTO")
+    default DocumentDTO mapDocumentToDTO(Map<String, Object> documentPayload) {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.convertValue(documentPayload, DocumentDTO.class);
+    }
 }

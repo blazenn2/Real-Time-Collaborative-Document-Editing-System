@@ -60,7 +60,7 @@ public class DocumentUpdateEventListener {
     @RabbitListener(queues = RabbitMQConstants.DEAD_LETTER_QUEUE)
     public void receiveDeadLetterEvents(DocumentDTO documentDTO, Message message,@Header(value = "errorType", defaultValue = ErrorTypeConstants.PROCESS_ERROR) String errorType, @Header(value = "Authorization", defaultValue = "") String token) {
         try {
-            if (!jwt.validateToken(token, true)) throw new JwtUnathorizedException("Invalid JWT token caught in DLQ");
+            if (!jwt.validateToken(token, true) || !jwt.validateToken(token, false)) throw new JwtUnathorizedException("Invalid JWT token caught in DLQ");
             String routingKey = message.getMessageProperties().getReceivedRoutingKey();
             Map<String, Object> headers = message.getMessageProperties().getHeaders();
             log.info("Event received in dead letter queue with this payload:[{}]", documentDTO);
