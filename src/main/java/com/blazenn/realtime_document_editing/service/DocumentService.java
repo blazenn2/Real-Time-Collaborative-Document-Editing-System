@@ -36,6 +36,18 @@ public class DocumentService {
         this.redisService = redisService;
     }
 
+    public void handleDocumentCache(DocumentDTO documentDTO) {
+        Cache documentCache = cacheManager.getCache("document");
+        // Update or insert into cache (put will replace if already exists)
+        if (documentCache != null) documentCache.put(documentDTO.getId(), documentDTO);
+        else {
+            Map<String, DocumentDTO> map = new HashMap<>();
+            map.put("document::" + documentDTO.getId(), documentDTO);
+            redisService.addMultipleToCache(map, 10);
+        }
+        log.debug("Document {} cached successfully", documentDTO.getId());
+    }
+
     @Transactional(propagation = Propagation.REQUIRED)
     public DocumentDTO save(DocumentDTO documentDTO) {
         log.info("Request to save document {}", documentDTO);
@@ -44,11 +56,7 @@ public class DocumentService {
         document = documentRepository.save(document);
         DocumentDTO mappedDocument = documentMapper.documentToDocumentDTO(document);
         try {
-            Cache documentCache = cacheManager.getCache("document");
-            // Update or insert into cache (put will replace if already exists)
-            if (documentCache != null) documentCache.put(mappedDocument.getId(), mappedDocument);
-            else redisService.addToCache("document::" + mappedDocument.getId(), mappedDocument, 10);
-            log.debug("Document {} cached successfully", document.getId());
+            this.handleDocumentCache(mappedDocument);
         } catch (Exception e) {
             log.error("Exception caught when trying to save document in cache", e);
             isProcessed = false;
@@ -57,11 +65,18 @@ public class DocumentService {
         return mappedDocument;
     }
 
-    @Cacheable(value = "document", key = "#id")
     public DocumentDTO findOneById(Long id) {
         log.info("Request to find document by id {}", id);
-        Document document = documentRepository.findById(id).orElse(null);
-        return documentMapper.documentToDocumentDTO(document);
+        DocumentDTO cachedDocumentDTO = redisService.getFromCache("document::" + id);
+        if (cachedDocumentDTO != null) return cachedDocumentDTO;
+        else {
+            Document document = documentRepository.findById(id).orElse(null);
+            DocumentDTO documentDTO =  documentMapper.documentToDocumentDTO(document);
+            Map<String, DocumentDTO> map = new HashMap<>();
+            map.put("document::" + id, documentDTO);
+            redisService.addMultipleToCache(map, 10);
+            return documentDTO;
+        }
     }
 
     public List<DocumentDTO> findAll(Pageable pageable) {
@@ -72,10 +87,16 @@ public class DocumentService {
     @Transactional(propagation = Propagation.REQUIRED)
     public DocumentDTO partialUpdate(DocumentDTO documentDTO) {
         log.info("Request to partial update document {}", documentDTO);
-        Cache documentCache = cacheManager.getCache("document");
-        if (documentCache != null) documentCache.evictIfPresent(documentDTO.getId());
-//        outboxEntryService.save(documentDTO);
-        return documentRepository.findById(documentDTO.getId()).map(document -> documentMapper.updateDocumentFromDTO(documentDTO, document)).map(documentMapper::documentToDocumentDTO).orElse(null);
+        boolean isProcessed = true;
+        DocumentDTO updatedDocument = documentRepository.findById(documentDTO.getId()).map(document -> documentMapper.updateDocumentFromDTO(documentDTO, document)).map(documentMapper::documentToDocumentDTO).orElse(null);
+        try {
+            this.handleDocumentCache(updatedDocument);
+        } catch (Exception e) {
+            log.error("Exception caught when trying to save document in cache", e);
+            isProcessed = false;
+        }
+        outboxEntryService.save(documentDTO, isProcessed);
+        return updatedDocument;
     }
 
     @CacheEvict(cacheNames = "document", key = "#id", beforeInvocation = true)

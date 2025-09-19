@@ -15,10 +15,6 @@ public class RedisService {
         this.redisTemplate = redisTemplate;
     }
 
-    public void addToCache(String key, Object value, long ttlInMinutes) {
-        redisTemplate.opsForValue().set(key, value, Duration.ofMinutes(ttlInMinutes));
-    }
-
     public void addMultipleToCache(Map<String, DocumentDTO> map, long ttlInMinutes) {
         redisTemplate.opsForValue().multiSet(map);
         for (String key: map.keySet()) {
@@ -26,11 +22,7 @@ public class RedisService {
         }
     }
 
-    public Object getFromCache(String key) {
-        return redisTemplate.opsForValue().get(key);
-    }
-
-    public void removeFromCache(String key) {
-        redisTemplate.delete(key);
+    public DocumentDTO getFromCache(String key) {
+        return (DocumentDTO) redisTemplate.opsForValue().get(key);
     }
 }
