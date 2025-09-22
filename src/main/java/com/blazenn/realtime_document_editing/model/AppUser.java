@@ -25,6 +25,7 @@ public class AppUser {
 
     @NotNull
     @Email
+    @Column(unique = true, nullable = false)
     private String email;
 
     @NotNull

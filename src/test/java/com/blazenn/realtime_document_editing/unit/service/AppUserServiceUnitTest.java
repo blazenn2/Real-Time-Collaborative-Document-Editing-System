@@ -87,7 +87,7 @@ public class AppUserServiceUnitTest {
 
     // ---------- create() tests ----------
     @Test
-    public void create_shouldEncodePasswordAndCreateAppUser() {
+    public void create_shouldEncodePasswordAndCreateAppUser() throws BadRequestException {
         // Arrange
         when(appUserMapper.appUserToAppUserDTO(appUser)).thenReturn(appUserDTO);
         when(passwordEncoder.encode(appUserDTO.getPassword())).thenReturn("encoded_password");

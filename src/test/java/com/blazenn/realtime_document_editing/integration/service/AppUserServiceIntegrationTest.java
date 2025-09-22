@@ -5,6 +5,7 @@ import com.blazenn.realtime_document_editing.dto.AppUserDTO;
 import com.blazenn.realtime_document_editing.dto.LoginVM;
 import com.blazenn.realtime_document_editing.repository.AppUserRepository;
 import com.blazenn.realtime_document_editing.service.AppUserService;
+import org.apache.coyote.BadRequestException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,7 +43,7 @@ public class AppUserServiceIntegrationTest {
     }
 
     @Test
-    void create_shouldPersistAndEncodePassword() {
+    void create_shouldPersistAndEncodePassword() throws BadRequestException {
         // Arrange
         AppUserDTO dto = buildUserDto("hamza@test.com");
 
@@ -55,7 +56,7 @@ public class AppUserServiceIntegrationTest {
     }
 
     @Test
-    void authenticateAppUser_shouldReturnTokenWhenValid() {
+    void authenticateAppUser_shouldReturnTokenWhenValid() throws BadRequestException {
         // Arrange
         AppUserDTO dto = buildUserDto("valid@test.com");
         appUserService.create(dto); // persist user first
@@ -69,7 +70,7 @@ public class AppUserServiceIntegrationTest {
     }
 
     @Test
-    void authenticateAppUser_shouldThrowOnWrongPassword() {
+    void authenticateAppUser_shouldThrowOnWrongPassword() throws BadRequestException {
         // Arrange
         AppUserDTO dto = buildUserDto("wrongpass@test.com");
         appUserService.create(dto); // persist user first

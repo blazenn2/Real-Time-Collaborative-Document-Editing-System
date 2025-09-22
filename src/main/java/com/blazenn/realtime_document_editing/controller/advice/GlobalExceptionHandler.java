@@ -2,8 +2,10 @@ package com.blazenn.realtime_document_editing.controller.advice;
 
 import com.blazenn.realtime_document_editing.controller.advice.errors.InvalidPasswordException;
 import com.blazenn.realtime_document_editing.controller.advice.errors.JwtUnathorizedException;
+import com.blazenn.realtime_document_editing.controller.advice.errors.UserAlreadyExistsException;
 import com.blazenn.realtime_document_editing.controller.advice.errors.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -38,5 +40,17 @@ public class GlobalExceptionHandler {
         error.put("error", "Unauthorized");
         error.put("path", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ProblemDetail> handleUserAlreadyExists(UserAlreadyExistsException ex) {
+        ErrorResponse errorResponse = ErrorResponse.create(ex, HttpStatusCode.valueOf(HttpStatus.BAD_REQUEST.value()), ex.getMessage());
+        return ResponseEntity.status(errorResponse.getStatusCode()).body(errorResponse.getBody());
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ProblemDetail> handleBadRequestException(BadRequestException ex) {
+        ErrorResponse errorResponse = ErrorResponse.create(ex, HttpStatusCode.valueOf(400), ex.getMessage());
+        return ResponseEntity.status(errorResponse.getStatusCode()).body(errorResponse.getBody());
     }
 }
