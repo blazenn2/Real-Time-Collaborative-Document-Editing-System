@@ -1,6 +1,7 @@
 package com.blazenn.realtime_document_editing.service;
 
 import com.blazenn.realtime_document_editing.controller.advice.errors.InvalidPasswordException;
+import com.blazenn.realtime_document_editing.controller.advice.errors.UserAlreadyExistsException;
 import com.blazenn.realtime_document_editing.controller.advice.errors.UserNotFoundException;
 import com.blazenn.realtime_document_editing.dto.AppUserDTO;
 import com.blazenn.realtime_document_editing.dto.LoginVM;
@@ -31,8 +32,9 @@ public class AppUserService {
         this.jwt = jwt;
     }
 
-    public AppUserDTO create(AppUserDTO appUserDTO) {
+    public AppUserDTO create(AppUserDTO appUserDTO) throws BadRequestException {
         log.info("Request to create user appUserDTO[{}]", appUserDTO);
+        if (appUserRepository.findAppUserByEmail(appUserDTO.getEmail()) != null) throw new UserAlreadyExistsException("The provided email already exists.");
         AppUser appUser = appUserMapper.appUserDTOToAppUser(appUserDTO);
         appUser.setPassword(passwordEncoder.encode(appUser.getPassword()));
         return appUserMapper.appUserToAppUserDTO(appUserRepository.save(appUser));

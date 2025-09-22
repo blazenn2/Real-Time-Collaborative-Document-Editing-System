@@ -1,0 +1,27 @@
+package com.blazenn.realtime_document_editing.utils;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.io.IOException;
+
+public class TestUtils {
+    private static final ObjectMapper mapper = createObjectMapper();
+
+    private static ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS, false);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+        mapper.registerModule(new JavaTimeModule());
+        return mapper;
+    }
+
+    public static byte[] convertObjectToJsonBytes(Object object) throws IOException {
+        return mapper.writeValueAsBytes(object);
+    }
+}

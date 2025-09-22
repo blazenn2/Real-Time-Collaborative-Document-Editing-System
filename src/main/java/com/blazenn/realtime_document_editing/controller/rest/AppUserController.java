@@ -34,7 +34,7 @@ public class AppUserController {
         appUserService.validateAppUserForUpdate(appUserDTO, id);
         log.info("PUT request of /app-user/{} with body: {}", id, appUserDTO);
         AppUserDTO result = appUserService.create(appUserDTO);
-        return ResponseEntity.created(new URI("/api/app-user/" + result.getId())).body(result);
+        return ResponseEntity.ok().location(new URI("/api/app-user/" + result.getId())).body(result);
     }
 
     @PatchMapping("/{id}")
@@ -42,6 +42,6 @@ public class AppUserController {
         appUserService.validateAppUserForUpdate(appUserDTO, id);
         log.info("PATCH request of /app-user/{} with body: {}", id, appUserDTO);
         AppUserDTO result = appUserService.partialUpdate(appUserDTO);
-        return ResponseEntity.created(new URI("/api/app-user/" + result.getId())).body(result);
+        return ResponseEntity.ok().location(new URI("/api/app-user/" + result.getId())).body(result);
     }
 }
