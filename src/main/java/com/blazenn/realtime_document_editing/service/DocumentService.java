@@ -2,6 +2,7 @@ package com.blazenn.realtime_document_editing.service;
 
 import com.blazenn.realtime_document_editing.dto.DocumentDTO;
 import com.blazenn.realtime_document_editing.model.Document;
+import com.blazenn.realtime_document_editing.model.UUIDHistory;
 import com.blazenn.realtime_document_editing.repository.DocumentRepository;
 import com.blazenn.realtime_document_editing.service.mapper.DocumentMapper;
 import org.apache.coyote.BadRequestException;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,13 +28,15 @@ public class DocumentService {
     private final CacheManager cacheManager;
     private final OutboxEntryService outboxEntryService;
     private final RedisService redisService;
+    private final UUIDHistoryService uuidHistoryService;
 
-    public DocumentService(DocumentRepository documentRepository, DocumentMapper documentMapper, CacheManager cacheManager, OutboxEntryService outboxEntryService, RedisService redisService) {
+    public DocumentService(DocumentRepository documentRepository, DocumentMapper documentMapper, CacheManager cacheManager, OutboxEntryService outboxEntryService, RedisService redisService, UUIDHistoryService uuidHistoryService) {
         this.documentRepository = documentRepository;
         this.documentMapper = documentMapper;
         this.cacheManager = cacheManager;
         this.outboxEntryService = outboxEntryService;
         this.redisService = redisService;
+        this.uuidHistoryService = uuidHistoryService;
     }
 
     public void handleDocumentCache(DocumentDTO documentDTO) {
@@ -51,7 +55,25 @@ public class DocumentService {
     public DocumentDTO save(DocumentDTO documentDTO) {
         log.info("Request to save document {}", documentDTO);
         boolean isProcessed = true;
+        Document existingDocument = null;
+
+        if (documentDTO.getId() != null) {
+            existingDocument = documentRepository.findByIdWithUUIDHistory(documentDTO.getId());
+            Boolean isUpdateIdempotent = this.idempotentUpdateChecks(documentDTO, existingDocument);
+            // To maintain update idempotency
+            if (!isUpdateIdempotent) return null;
+            uuidHistoryService.capUUIDHistoryForSpecificDocument(documentDTO.getId(), 100);
+        }
+
         Document document = documentMapper.documentDTOToDocument(documentDTO);
+
+        // Fetch UUID history from the db and populates it to document entity to maintain history
+        if (existingDocument != null) {
+            List<UUIDHistory> uuidHistory = existingDocument.getUuidHistory();
+            uuidHistory.add(new UUIDHistory(documentDTO.getUuid(), document, Instant.now()));
+            document.setUuidHistory(uuidHistory);
+        }
+
         document = documentRepository.save(document);
         DocumentDTO mappedDocument = documentMapper.documentToDocumentDTO(document);
         try {
@@ -64,6 +86,22 @@ public class DocumentService {
         return mappedDocument;
     }
 
+    public Boolean idempotentUpdateChecks(DocumentDTO incomingUpdateDocumentRequest, Document existingDocument) {
+        // Checks whether the UUID exists in the history && the incoming lastModifiedDate is in past while the persisted lastModifiedDate is in the future.
+        if (existingDocument != null) {
+            Boolean doesProvidedUUIDExists = existingDocument.getUuidHistory().stream().anyMatch(u -> u.getUuid().equals(incomingUpdateDocumentRequest.getUuid()));
+            Boolean isProvidedLastModifiedDateIsPast = existingDocument.getLastModifiedDate().isAfter(incomingUpdateDocumentRequest.getLastModifiedDate());
+            if (doesProvidedUUIDExists || isProvidedLastModifiedDateIsPast) {
+                log.warn("IDEMPOTENCE WARNING: The provided document[id={}] payload is already persisted. Payload->[{}]", incomingUpdateDocumentRequest.getId(), incomingUpdateDocumentRequest);
+                log.warn("IDEMPOTENCE PROOFS[MODIFIED DATE]: existing document last modified date is [{}] & incoming request document last modified date is [{}] and the boolean of isProvidedLastModifiedDateIsPast is marked as {}", existingDocument.getLastModifiedDate(), incomingUpdateDocumentRequest.getLastModifiedDate(), isProvidedLastModifiedDateIsPast);
+                log.warn("IDEMPOTENCE PROOFS[UUID]: The incoming request UUID[{}] is available in the UUID history table, time of occurrence[{}]", incomingUpdateDocumentRequest.getUuid(), Instant.now());
+                log.warn("=====>>> To maintain idempotency, skipping this update <<<=====");
+                return false;
+            }
+        }
+        return true;
+    }
+
     public DocumentDTO findOneById(Long id) {
         log.info("Request to find document by id {}", id);
         DocumentDTO cachedDocumentDTO = redisService.getFromCache("document::" + id);
@@ -73,7 +111,11 @@ public class DocumentService {
             DocumentDTO documentDTO =  documentMapper.documentToDocumentDTO(document);
             Map<String, DocumentDTO> map = new HashMap<>();
             map.put("document::" + id, documentDTO);
-            redisService.addMultipleToCache(map, 10);
+            try {
+                redisService.addMultipleToCache(map, 10);
+            } catch (RuntimeException e) {
+                log.error("Exception caught when adding document to cache in findOneBId", e.fillInStackTrace());
+            }
             return documentDTO;
         }
     }
@@ -117,12 +159,18 @@ public class DocumentService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public DocumentDTO saveContentAndTitle(Long id, DocumentDTO documentDTO) {
+        DocumentDTO document = null;
         if (documentDTO.getTitle() == null || documentDTO.getContent() == null) {
             DocumentDTO documentFromRepository = this.findOneById(id);
             documentDTO.setContent(documentDTO.getContent() == null ? documentFromRepository.getContent() : documentDTO.getContent());
             documentDTO.setTitle(documentDTO.getTitle() == null ? documentFromRepository.getTitle() : documentDTO.getTitle());
         }
-        return this.save(documentDTO);
+        try {
+            document = this.save(documentDTO);
+        } catch (Exception e) {
+            log.error("Exception caught while saving content and title", e);
+        }
+        return document;
     }
 
     public DocumentDTO convertMapJsonToDocumentDTO(Map<String, Object> map) {

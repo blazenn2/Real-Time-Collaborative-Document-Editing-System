@@ -11,5 +11,7 @@
     <include file="sql/1.0.2-creation-of-dead-events-entity.sql" relativeToChangelogFile="true" />
     <include file="sql/1.0.3-add-error-type-in-dead-events-table.sql" relativeToChangelogFile="true" />
     <include file="sql/1.0.4-add-outbox-entry-table-for-cache-update.sql" relativeToChangelogFile="true" />
-
+    <include file="sql/1.0.5-add-UUID-column-in-document-table.sql" relativeToChangelogFile="true" />
+    <include file="sql/1.0.6-add-UUID-table-for-storing-consumed-uuids.sql" relativeToChangelogFile="true" />
+    <include file="sql/1.0.7-add-created_date_in_the_uuid_history_table.sql" relativeToChangelogFile="true" />
 </databaseChangeLog>
