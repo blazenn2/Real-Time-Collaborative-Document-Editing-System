@@ -8,12 +8,17 @@ import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Data
 @ToString
+@EntityListeners(AuditingEntityListener.class)
 public class Document {
 
     @Id
@@ -26,6 +31,9 @@ public class Document {
 
     private String content;
 
+    @Column(columnDefinition = "UUID", nullable = false ,unique = true)
+    private UUID uuid;
+
     @CreatedDate
     private Instant createdDate=Instant.now();
 
@@ -35,8 +43,10 @@ public class Document {
     @LastModifiedBy
     private String lastModifiedBy;
 
-    @LastModifiedDate
     private Instant lastModifiedDate;
+
+    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UUIDHistory> uuidHistory = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -92,5 +102,21 @@ public class Document {
 
     public void setLastModifiedDate(Instant lastModifiedDate) {
         this.lastModifiedDate = lastModifiedDate;
+    }
+
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+    }
+
+    public List<UUIDHistory> getUuidHistory() {
+        return uuidHistory;
+    }
+
+    public void setUuidHistory(List<UUIDHistory> uuidHistory) {
+        this.uuidHistory = uuidHistory;
     }
 }

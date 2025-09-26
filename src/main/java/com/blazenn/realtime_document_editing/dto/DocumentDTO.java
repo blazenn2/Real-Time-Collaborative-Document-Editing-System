@@ -6,6 +6,8 @@ import lombok.ToString;
 import org.springframework.data.redis.core.RedisHash;
 
 import java.io.Serializable;
+import java.time.Instant;
+import java.util.UUID;
 
 @Data
 @ToString
@@ -19,6 +21,8 @@ public class DocumentDTO implements Serializable {
     @NotBlank
     private String title;
     private String content;
+    private Instant lastModifiedDate;
+    private UUID uuid;
 
     public Long getId() {
         return id;
@@ -42,5 +46,21 @@ public class DocumentDTO implements Serializable {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public Instant getLastModifiedDate() {
+        return lastModifiedDate;
+    }
+
+    public void setLastModifiedDate(Instant lastModifiedDate) {
+        this.lastModifiedDate = lastModifiedDate;
+    }
+
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
     }
 }
