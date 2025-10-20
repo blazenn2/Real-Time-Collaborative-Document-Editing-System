@@ -1,7 +1,7 @@
 package com.blazenn.realtime_document_editing.messaging.producer;
 
 import com.blazenn.realtime_document_editing.constants.RabbitMQConstants;
-import com.blazenn.realtime_document_editing.dto.DocumentDTO;
+import com.blazenn.realtime_document_editing.dto.UpdateDocumentDTO;
 import com.blazenn.realtime_document_editing.security.Jwt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,19 +19,19 @@ public class DocumentUpdateEventProducer {
         this.jwt = jwt;
     }
 
-    public void sendDocumentUpdate(DocumentDTO documentDTO, String token) {
-        log.info("Adding document to the queue[{}] with this payload: [{}]", RabbitMQConstants.UPDATE_DOC_QUEUE, documentDTO);
-        rabbitTemplate.convertAndSend(RabbitMQConstants.UPDATE_DOC_EXCHANGE, RabbitMQConstants.UPDATE_DOC_ROUTING_KEY, documentDTO, message -> {
+    public void sendDocumentUpdate(UpdateDocumentDTO updateDocumentDTO, String token) {
+        log.info("Adding document to the queue[{}] with this payload: [{}]", RabbitMQConstants.UPDATE_DOC_QUEUE, updateDocumentDTO);
+        rabbitTemplate.convertAndSend(RabbitMQConstants.UPDATE_DOC_EXCHANGE, RabbitMQConstants.UPDATE_DOC_ROUTING_KEY, updateDocumentDTO, message -> {
             message.getMessageProperties().setExpiration("15000");
             message.getMessageProperties().setHeader("Authorization", token);
             return message;
         });
     }
 
-    public void sendDocumentErrorToDLQ(DocumentDTO documentDTO, String errorType) {
-        log.info("Sending document[id={}] to DLQ with this payload: {}", documentDTO.getId(), documentDTO);
+    public void sendDocumentErrorToDLQ(UpdateDocumentDTO updateDocumentDTO, String errorType) {
+        log.info("Sending document[id={}] to DLQ with this payload: {}", updateDocumentDTO.getId(), updateDocumentDTO);
         String token = jwt.createToken(null, true);
-        rabbitTemplate.convertAndSend(RabbitMQConstants.DEAD_LETTER_EXCHANGE, RabbitMQConstants.DEAD_LETTER_ROUTING_KEY, documentDTO, message -> {
+        rabbitTemplate.convertAndSend(RabbitMQConstants.DEAD_LETTER_EXCHANGE, RabbitMQConstants.DEAD_LETTER_ROUTING_KEY, updateDocumentDTO, message -> {
             message.getMessageProperties().setHeader("errorType", errorType);
             message.getMessageProperties().setHeader("Authorization", token);
             return message;

@@ -1,6 +1,9 @@
 package com.blazenn.realtime_document_editing.service;
 
+import com.blazenn.realtime_document_editing.constants.DocumentTextEventTypeConstants;
 import com.blazenn.realtime_document_editing.dto.DocumentDTO;
+import com.blazenn.realtime_document_editing.dto.DocumentTextDiffDTO;
+import com.blazenn.realtime_document_editing.dto.UpdateDocumentDTO;
 import com.blazenn.realtime_document_editing.model.Document;
 import com.blazenn.realtime_document_editing.model.UUIDHistory;
 import com.blazenn.realtime_document_editing.repository.DocumentRepository;
@@ -18,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +33,7 @@ public class DocumentService {
     private final OutboxEntryService outboxEntryService;
     private final RedisService redisService;
     private final UUIDHistoryService uuidHistoryService;
+    private final ConcurrentHashMap<Long, Object> documentLocks = new ConcurrentHashMap<>(); // Using it for locking purposes
 
     public DocumentService(DocumentRepository documentRepository, DocumentMapper documentMapper, CacheManager cacheManager, OutboxEntryService outboxEntryService, RedisService redisService, UUIDHistoryService uuidHistoryService) {
         this.documentRepository = documentRepository;
@@ -158,6 +163,26 @@ public class DocumentService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
+    public DocumentDTO performDocumentUpdate(UpdateDocumentDTO updateDocumentDTO) throws BadRequestException {
+        List<DocumentTextDiffDTO> documentTextDiffDTOS = updateDocumentDTO.getTextDiff();
+        Object monitorLock = this.getLockForDocument(updateDocumentDTO.getId());
+        synchronized (monitorLock) {
+            Document document = documentRepository.findById(updateDocumentDTO.getId()).orElse(null);
+            if (document == null) throw new BadRequestException("No such document available");
+            StringBuilder content = new StringBuilder(document.getContent());
+            documentTextDiffDTOS.forEach(textDiffDTO -> {
+                if (textDiffDTO.getType().equals(DocumentTextEventTypeConstants.INSERT)) {
+                    content.insert((int) textDiffDTO.getIndex(), textDiffDTO.getText());
+                } else {
+                    content.delete((int) textDiffDTO.getIndex(), (int) (textDiffDTO.getIndex() + textDiffDTO.getLength()));
+                }
+            });
+            DocumentDTO documentDTO = documentMapper.mapForDocumentDTO(content.toString(), updateDocumentDTO, document);
+            return this.saveContentAndTitle(updateDocumentDTO.getId(), documentDTO); // Need to cleanup properly this fn
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
     public DocumentDTO saveContentAndTitle(Long id, DocumentDTO documentDTO) {
         DocumentDTO document = null;
         if (documentDTO.getTitle() == null || documentDTO.getContent() == null) {
@@ -175,5 +200,13 @@ public class DocumentService {
 
     public DocumentDTO convertMapJsonToDocumentDTO(Map<String, Object> map) {
         return documentMapper.mapDocumentToDTO(map);
+    }
+
+    /**
+     * === PRIVATE METHODS ===
+     */
+
+    private Object getLockForDocument(Long documentId) {
+        return documentLocks.computeIfAbsent(documentId, id -> new Object());
     }
 }

@@ -1,6 +1,6 @@
 package com.blazenn.realtime_document_editing.controller.socket;
 
-import com.blazenn.realtime_document_editing.dto.DocumentDTO;
+import com.blazenn.realtime_document_editing.dto.UpdateDocumentDTO;
 import com.blazenn.realtime_document_editing.messaging.producer.DocumentUpdateEventProducer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,8 +23,8 @@ public class DocumentController {
     }
 
     @MessageMapping("/documents/{id}")
-    public void updateDocument(@DestinationVariable String id, @Payload DocumentDTO documentDTO, Principal principal) {
-        log.info("Socket request to update document of id '{}' with this payload: {}", id, documentDTO);
-        documentUpdateEventProducer.sendDocumentUpdate(documentDTO, (String) ((UsernamePasswordAuthenticationToken) principal).getCredentials());
+    public void updateDocument(@DestinationVariable String id, @Payload UpdateDocumentDTO updateDocumentDTO, Principal principal) {
+        log.debug("Socket request to update document of id '{}' with this payload: {}", id, updateDocumentDTO);
+        documentUpdateEventProducer.sendDocumentUpdate(updateDocumentDTO, (String) ((UsernamePasswordAuthenticationToken) principal).getCredentials());
     }
 }

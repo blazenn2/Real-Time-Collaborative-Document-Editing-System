@@ -4,12 +4,15 @@ import com.blazenn.realtime_document_editing.constants.ErrorTypeConstants;
 import com.blazenn.realtime_document_editing.constants.RabbitMQConstants;
 import com.blazenn.realtime_document_editing.controller.advice.errors.JwtUnathorizedException;
 import com.blazenn.realtime_document_editing.dto.DocumentDTO;
+import com.blazenn.realtime_document_editing.dto.DocumentTextDiffDTO;
+import com.blazenn.realtime_document_editing.dto.UpdateDocumentDTO;
 import com.blazenn.realtime_document_editing.messaging.producer.DocumentUpdateEventProducer;
 import com.blazenn.realtime_document_editing.security.Jwt;
 import com.blazenn.realtime_document_editing.service.DeadEventsService;
 import com.blazenn.realtime_document_editing.service.DocumentService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -41,26 +44,34 @@ public class DocumentUpdateEventListener {
     }
 
     @RabbitListener(queues = RabbitMQConstants.UPDATE_DOC_QUEUE)
-    public void receiveUpdateDocument(DocumentDTO documentDTO, @Header(value = "Authorization", defaultValue = "") String token) {
+    public void receiveUpdateDocument(UpdateDocumentDTO updateDocumentDTO, @Header(value = "Authorization", defaultValue = "") String token) {
         if (!jwt.validateToken(token)) {
-            documentUpdateEventProducer.sendDocumentErrorToDLQ(documentDTO, ErrorTypeConstants.UNAUTHORIZED_ERROR);
+            documentUpdateEventProducer.sendDocumentErrorToDLQ(updateDocumentDTO, ErrorTypeConstants.UNAUTHORIZED_ERROR);
             return;
         }
-        Set<ConstraintViolation<DocumentDTO>> constraintViolationSet = validator.validate(documentDTO);
+        Set<ConstraintViolation<UpdateDocumentDTO>> constraintViolationSet = validator.validate(updateDocumentDTO);
         if (!constraintViolationSet.isEmpty()) {
-            constraintViolationSet.forEach(constraintViolation -> log.error("Caught validation error document[id={}] message : {}", documentDTO.getId(), constraintViolation.getMessage()));
-            documentUpdateEventProducer.sendDocumentErrorToDLQ(documentDTO, ErrorTypeConstants.VALIDATION_ERROR);
+            constraintViolationSet.forEach(constraintViolation -> log.error("Caught validation error document[id={}] message : {}", updateDocumentDTO.getId(), constraintViolation.getMessage()));
+            documentUpdateEventProducer.sendDocumentErrorToDLQ(updateDocumentDTO, ErrorTypeConstants.VALIDATION_ERROR);
             return;
         }
-        log.info("Event for update document received on queue[{}]: {}",RabbitMQConstants.UPDATE_DOC_QUEUE, documentDTO);
-        DocumentDTO updatedDocumentDTO = documentService.saveContentAndTitle(documentDTO.getId(), documentDTO);
-        messagingTemplate.convertAndSend("/topic/documents/" + documentDTO.getId(), updatedDocumentDTO);
+        log.info("Event for update document received on queue[{}]: {}",RabbitMQConstants.UPDATE_DOC_QUEUE, updateDocumentDTO);
+//        DocumentDTO updatedDocumentDTO = documentService.saveContentAndTitle(documentDTO.getId(), documentDTO);
+        DocumentDTO newlyUpdatedDocument = null;
+        try {
+            newlyUpdatedDocument = documentService.performDocumentUpdate(updateDocumentDTO);
+        } catch (Exception e) {
+            log.error("Caught exception in the receiveUpdateDocument when performing update of document on performDocumentUpdate with this payload:{}", updateDocumentDTO);
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+        messagingTemplate.convertAndSend("/topic/documents/" + updateDocumentDTO.getId(), newlyUpdatedDocument);
     }
 
     @RabbitListener(queues = RabbitMQConstants.DEAD_LETTER_QUEUE)
     public void receiveDeadLetterEvents(DocumentDTO documentDTO, Message message,@Header(value = "errorType", defaultValue = ErrorTypeConstants.PROCESS_ERROR) String errorType, @Header(value = "Authorization", defaultValue = "") String token) {
         try {
-            if (!jwt.validateToken(token, true) || !jwt.validateToken(token, false)) throw new JwtUnathorizedException("Invalid JWT token caught in DLQ");
+            if (!jwt.validateToken(token, true) && !jwt.validateToken(token, false)) throw new JwtUnathorizedException("Invalid JWT token caught in DLQ");
             String routingKey = message.getMessageProperties().getReceivedRoutingKey();
             Map<String, Object> headers = message.getMessageProperties().getHeaders();
             log.info("Event received in dead letter queue with this payload:[{}]", documentDTO);

@@ -1,6 +1,7 @@
 package com.blazenn.realtime_document_editing.service.mapper;
 
 import com.blazenn.realtime_document_editing.dto.DocumentDTO;
+import com.blazenn.realtime_document_editing.dto.UpdateDocumentDTO;
 import com.blazenn.realtime_document_editing.model.Document;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.mapstruct.*;
@@ -29,5 +30,13 @@ public abstract class DocumentMapper {
     @Named("MapToDocumentDTO")
     public DocumentDTO mapDocumentToDTO(Map<String, Object> documentPayload) {
         return mapper.convertValue(documentPayload, DocumentDTO.class);
+    }
+
+    public DocumentDTO mapForDocumentDTO(String content, UpdateDocumentDTO updateDocumentDTO, Document document) {
+        DocumentDTO documentDTO = this.documentToDocumentDTO(document);
+        documentDTO.setContent(content);
+        documentDTO.setUuid(updateDocumentDTO.getUuid());
+        documentDTO.setLastModifiedDate(updateDocumentDTO.getLastModifiedDate());
+        return documentDTO;
     }
 }
